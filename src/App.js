@@ -2,7 +2,7 @@
 // import "./App.css";
 import FormData from "../src/components/Form";
 
-// Import the functions you need from the SDKs you need
+
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
