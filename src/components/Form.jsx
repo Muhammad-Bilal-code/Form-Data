@@ -2,50 +2,82 @@ import React, { useEffect } from "react";
 import Container from "@mui/material/Container";
 import { Button, Grid, TextField, Typography } from "@mui/material";
 import { useForm } from "react-hook-form";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 import { useState } from "react";
 import { storage } from "../App";
-import { ref, uploadBytes } from "firebase/storage";
+import {
+  ref,
+  uploadBytes,
+  uploadBytesResumable,
+  getDownloadURL,
+} from "firebase/storage";
 
 const FormData = ({ db }) => {
+  const [imgUpload, setImgUpload] = useState(null);
+  const [imgUrl, setImgUrl] = useState(null);
+  const userRef = collection(db, "users");
+  useEffect(() => {
+    const querySnapshot = async () => {
+      try {
+        await getDocs(collection(db, "users")).then((data) => {
+          data.forEach((elm) => {
+            console.log(elm.data());
+          });
+          console.log(data);
+        });
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    querySnapshot();
+  }, []);
+
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
 
-  const handleMySubmit = (values) => {
-    handleUploadImage();
-    handleAddData(values);
+  const handleMySubmit = async (values) => {
+    // handleUploadImage();
+    uploadImgHandle(values);
+
     console.log(values);
-    // console.log(values?.profpic[0]?.name);
   };
 
-  const handleAddData = async (values) => {
+  const uploadImgHandle = async (values) => {
     try {
-      const docRef = await addDoc(collection(db, "users"), {
+      const storageRef = ref(storage, `/userimages/${userRef.id}`);
+      await uploadBytes(storageRef, imgUpload).then((snapshot) => {
+        console.log("Uploaded a blob or file!", snapshot);
+      });
+      const url = await getDownloadURL(storageRef);
+      setImgUrl(url);
+      console.log("url", url);
+      console.log(imgUrl);
+      handleAddData(values, url);
+    } catch (err) {
+      console.log(err, "error");
+    }
+  };
+
+  const handleAddData = async (values, url) => {
+    try {
+      console.log(imgUrl, "imgur;s");
+      const docRef = await addDoc(userRef, {
         firstName: values.fname,
         lastName: values.lname,
         email: values.email,
         password: values.password,
-        profilePic: values.profpic[0].name,
+        profilePic: url,
       });
+      console.log(docRef);
       console.log("Document written with ID: ", docRef.id);
     } catch (e) {
       console.error("Error adding document: ", e);
     }
   };
-  const [imgUpload, setImgUpload] = useState(null);
-  const handleUploadImage = () => {
-    const imageRef = ref(storage, `userimages/${imgUpload.name}`);
-    uploadBytes(imageRef, imgUpload).then((snapshot) => {
-      console.log("Uploaded a blob or file!");
-    });
-  };
 
-  useEffect(() => {
-    console.log(imgUpload);
-  }, [imgUpload]);
   return (
     <div>
       <Container sx={{ bgcolor: "#cfe8fc", minHeight: "50vh" }}>
@@ -66,17 +98,6 @@ const FormData = ({ db }) => {
               gap: "10px",
             }}
           >
-            {/* <Grid
-              xs={12}
-              style={{
-                display: "flex",
-                gap: "5px",
-                flexWrap: "wrap",
-                justifyContent: "center",
-              }}
-            >
-            
-            </Grid> */}
             <Grid
               xs={12}
               style={{
